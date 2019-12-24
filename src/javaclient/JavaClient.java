@@ -1,4 +1,6 @@
 package javaclient;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -6,19 +8,22 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 public class JavaClient {
 
-    private static Random rnd=new Random();
+    private static Random rnd = new Random();
 
     public static void main(String[] args) {
         try {
             // Load the JDBC driver, so your Java program can talk with your database.
             // You have to download the driver (called Connector/J) from
-            //    https://mariadb.com/kb/en/library/about-mariadb-connector-j/
+            //   https://mariadb.com/kb/en/library/about-mariadb-connector-j/
             // and add the jar file to your project, otherwise you will get a
-            // ClassNotFound expection.
+            // ClassNotFound exception.
             Class.forName("org.mariadb.jdbc.Driver");
 
             // Connect to the database. Very similar to using the mysql commandline tool.
@@ -26,15 +31,66 @@ public class JavaClient {
             try(Connection con = DriverManager.getConnection(
                     "jdbc:mysql://192.168.0.11:3306", "user", "password")) {
 
-                // Some examples:
-                testGetAverage(con,Math.abs(rnd.nextInt() % 2000000),Math.abs(rnd.nextInt() % 1000));
-                testSelect(con,Math.abs(rnd.nextInt() % 2000000),1000000);
+                /*// Some examples:
+                testGetAverage(con, Math.abs(rnd.nextInt() % 2000000), Math.abs(rnd.nextInt() % 1000));
+                testSelect(con, Math.abs(rnd.nextInt() % 2000000), 1000000);
                 testWrite(con);
+                 */
+                queryInfluence(con, 2);
             }
         }
         catch (Exception e) {
             System.out.println(e);
         }
+    }
+
+    private static void queryInfluence(Connection con, int n) throws IOException, SQLException {
+        // Write the data to a csv file which can be turned into plots by the Python code.
+        FileWriter csvWriter = null;
+        try {
+            csvWriter = new FileWriter("../data/query_influence.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        assert csvWriter != null;
+        csvWriter.append("type");
+        csvWriter.append(",");
+        csvWriter.append("times");
+        csvWriter.append("\n");
+
+        String[] types = {"INSERT", "SELECT"};
+        for (String queryType : types) {
+            csvWriter.append(queryType);
+            csvWriter.append(",");
+            String[] times = new String[n];
+            switch (queryType) {
+                case "INSERT":
+                    for (int i = 0; i < n; i++) {
+                        long s = System.nanoTime();
+                        testWrite(con);
+                        times[i] = Long.toString(System.nanoTime() - s);
+                    }
+                    break;
+                case "SELECT":
+                    for (int i = 0; i < n; i++) {
+                        int startRow = Math.abs(rnd.nextInt() % 2000000);
+                        int nRows = 1000000;
+                        long s = System.nanoTime();
+                        testSelect(con, startRow, nRows);
+                        times[i] = Long.toString(System.nanoTime() - s);
+                    }
+                    break;
+                default:
+                    System.out.println("Unknown query; aborting.");
+                    System.exit(1);
+                    break;
+            }
+            csvWriter.append(String.join(",", Arrays.asList(times)));
+            csvWriter.append("\n");
+        }
+
+        csvWriter.flush();
+        csvWriter.close();
     }
 
     // Example query where most of the processing happens on the server.
@@ -49,7 +105,6 @@ public class JavaClient {
         // here because our example query will only return one result line
         while (rs.next()) {
             double averageSalary=rs.getDouble(1);  // get column 1 of the result
-            System.out.println(averageSalary);
         }
     }
 
@@ -88,7 +143,7 @@ public class JavaClient {
         catch(SQLIntegrityConstraintViolationException e) {
             // The salaries table uses the employee number and the from-date as primary key.
             // Since we are generating random employee numbers and random dates, there is a certain
-            // probablity that the row already exists. Let's just ignore errors for this test.
+            // probability that the row already exists. Let's just ignore errors for this test.
         }
 
         // Clean up your database afterwards with
