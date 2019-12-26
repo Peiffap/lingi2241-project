@@ -4,6 +4,8 @@
 @author: Gilles Peiffer
 """
 
+# https://stackoverflow.com/questions/56983979/how-to-change-color-of-outliers-in-seaborn-scatterplot ?
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
