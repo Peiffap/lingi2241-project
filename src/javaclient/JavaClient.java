@@ -31,7 +31,7 @@ public class JavaClient {
             try(Connection con = DriverManager.getConnection(
                     "jdbc:mysql://192.168.0.11:3306", "user", "password")) {
                 // Launch tests related to influence of query type on response time.
-                queryInfluence(con, 15);
+                queryInfluence(con, 30);
             }
         }
         catch (Exception e) {
@@ -51,46 +51,61 @@ public class JavaClient {
         csvWriter.append("query_type");
         csvWriter.append(",");
         csvWriter.append("time");
+        csvWriter.append(",");
+        csvWriter.append("is_average");
         csvWriter.append("\n");
 
         // For every query type, run the tests a certain number of times.
-        String[] types = {"testGetAverage", "testSelect", "testWrite"};
+        String[] types = {"GetAverage", "Select", "Write"};
         for (String queryType : types) {
+            long av = 0;
             switch (queryType) {
-                case "testGetAverage":
+                case "GetAverage":
                     for (int i = 0; i < n; i++) {
                         int startRow = Math.abs(rnd.nextInt() % 2000000);
                         int nRows = Math.abs(rnd.nextInt() % 1000);
                         long s = System.nanoTime();
                         testGetAverage(con, startRow, nRows);
-                        String t = Long.toString(System.nanoTime() - s);
+                        long e = System.nanoTime();
+                        av += e - s;
+                        String t = Long.toString(e - s);
                         csvWriter.append(queryType);
                         csvWriter.append(",");
                         csvWriter.append(t);
+                        csvWriter.append(",");
+                        csvWriter.append("no");
                         csvWriter.append("\n")
                     }
                     break;
-                case "testSelect":
+                case "Select":
                     for (int i = 0; i < n; i++) {
                         int startRow = Math.abs(rnd.nextInt() % 2000000);
                         int nRows = 1000000;
                         long s = System.nanoTime();
                         testSelect(con, startRow, nRows);
-                        String t = Long.toString(System.nanoTime() - s);
+                        long e = System.nanoTime();
+                        av += e - s;
+                        String t = Long.toString(e - s);
                         csvWriter.append(queryType);
                         csvWriter.append(",");
                         csvWriter.append(t);
+                        csvWriter.append(",");
+                        csvWriter.append("no");
                         csvWriter.append("\n")
                     }
                     break;
-                case "testWrite":
+                case "Write":
                     for (int i = 0; i < n; i++) {
                         long s = System.nanoTime();
                         testWrite(con);
-                        String t = Long.toString(System.nanoTime() - s);
+                        long e = System.nanoTime();
+                        av += e - s;
+                        String t = Long.toString(e - s);
                         csvWriter.append(queryType);
                         csvWriter.append(",");
                         csvWriter.append(t);
+                        csvWriter.append(",");
+                        csvWriter.append("no");
                         csvWriter.append("\n")
                     }
                     break;
@@ -99,6 +114,12 @@ public class JavaClient {
                     System.exit(1);
                     break;
             }
+            csvWriter.append(queryType);
+            csvWriter.append(",");
+            csvWriter.append(av/n);
+            csvWriter.append(",");
+            csvWriter.append("yes");
+            csvWriter.append("\n");
         }
         csvWriter.flush();
         csvWriter.close();
