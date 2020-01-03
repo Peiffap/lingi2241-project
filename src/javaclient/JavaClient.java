@@ -354,7 +354,7 @@ class SQLThread extends Thread {
             System.out.println(e);
         }
     }
-
+    
     long getTime() {
         return this.time;
     }
