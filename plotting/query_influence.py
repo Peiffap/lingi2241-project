@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 
 # Import Data
 data = "../data/query_influence.csv"
-df = pd.read_csv(data)
+df = pd.read_csv(data, engine='python')
 
 plt.figure(figsize=(10, 6))
 g = sns.scatterplot(x='query_type', y='time', hue='is_average', data=df, legend='full')
