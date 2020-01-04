@@ -1,5 +1,4 @@
 query_type,time,is_average
-<<<<<<< HEAD
 GetAverage,460427690,no
 GetAverage,322664725,no
 GetAverage,398262457,no
@@ -153,17 +152,3 @@ Write,14934684,no
 Write,28575242,no
 Write,26436045,no
 Write,35178319,yes
-=======
-GetAverage,461242904,no
-GetAverage,333392527,no
-GetAverage,290490181,no
-GetAverage,361708537,yes
-Select,10778677277,no
-Select,9564005582,no
-Select,9539356400,no
-Select,9960679753,yes
-Write,125367717,no
-Write,21084962,no
-Write,33535531,no
-Write,59996070,yes
->>>>>>> 6ca094e2f3a90a2de174d03eb51fd7c07a929ac4
