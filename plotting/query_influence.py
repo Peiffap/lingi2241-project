@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings('ignore')
 
-
 # Import Data
 data = "../data/query_influence.csv"
 df = pd.read_csv(data, engine='python')
@@ -24,7 +23,7 @@ df = pd.read_csv(data, engine='python')
 plt.figure(figsize=(10, 6))
 g = sns.scatterplot(x='query_type', y='time', hue='is_average', data=df, legend='full')
 g.set_yscale("log")
-g.set(xlabel='SQL query type', ylabel='Response time (ns)', title='Influence of query type on response time')
+g.set(xlabel='SQL query type', ylabel='Response time (ns)', title='Influence of query type on response time (3 server threads)')
 g.get_legend().set_title('Legend')
 # Hack to remove the first legend entry (which is the undesired title).
 vpacker = g.get_legend()._legend_handle_box.get_children()[0]
@@ -35,3 +34,4 @@ l.texts[1].set_text('Data')
 l.texts[2].set_text('Average')
 
 plt.savefig('query_influence.eps', format='eps', dpi=1_000_000)
+plt.show()

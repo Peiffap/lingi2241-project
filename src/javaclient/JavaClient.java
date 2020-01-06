@@ -18,14 +18,17 @@ public class JavaClient {
 
     private static Random rnd = new Random();
 
-    static String url = "jdbc:mysql://192.168.0.3:3306";
+    static String url = "jdbc:mysql://192.168.0.5:3306";
     static String user = "user";
     static String password = "password";
 
     public static void main(String[] args) {
         try {
-            queryInfluence(50);
-            rateInfluence(50);
+            // queryInfluence(50);
+            // rateInfluenceAverage(100);
+            // rateInfluenceSelect(100);
+            // rateInfluenceWrite(100);
+            threadInfluence(100);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -35,18 +38,84 @@ public class JavaClient {
         double u = rnd.nextDouble();
         double x =  Math.log(1-u)/(-lambda);
         System.out.println(x);
-        return x/3; // Number of threads on the server.
-        //return 0;
+        return x;
     }
 
-    private static void rateInfluence(int n) throws  IOException, InterruptedException {
+    private static void threadInfluence(int n) throws  IOException, InterruptedException {
         ReentrantLock avlock = new ReentrantLock();
         ReentrantLock csvlock = new ReentrantLock();
 
         // Write the data to a csv file which can be turned into plots by the Python code.
         FileWriter csvWriter = null;
         try {
-            csvWriter = new FileWriter("../data/rate_influence.csv");
+            csvWriter = new FileWriter("../data/thread_influence_8.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        assert csvWriter != null;
+        csvWriter.append("n_threads");
+        csvWriter.append(",");
+        csvWriter.append("time");
+        csvWriter.append(",");
+        csvWriter.append("is_average");
+        csvWriter.append("\n");
+
+        double u = rnd.nextDouble();
+        String nthreads = "8";
+
+        // For every query type, run the tests a certain number of times.
+        double[] invlambdas = {200};
+        for (double invlambda: invlambdas) {
+            long av = 0;
+            SQLThread[] threads = new SQLThread[n];
+            for (int i = 0; i < n; i++) {
+                int startRow = Math.abs(rnd.nextInt() % 2000000);
+                int nRows = Math.abs((int) expo(1/1000.0));
+                Thread.sleep((long) expo(1.0/invlambda));
+                threads[i] = new SQLThread("GetAverage", startRow, nRows, -1);
+                threads[i].start();
+            }
+            for (SQLThread th : threads) {
+                th.join();
+                long tl = th.getTime();
+                avlock.lock();
+                try {
+                    av += tl;
+                } finally {
+                    avlock.unlock();
+                }
+                String t = Long.toString(tl);
+                csvlock.lock();
+                try {
+                    csvWriter.append(nthreads);
+                    csvWriter.append(",");
+                    csvWriter.append(t);
+                    csvWriter.append(",");
+                    csvWriter.append("no");
+                    csvWriter.append("\n");
+                } finally {
+                    csvlock.unlock();
+                }
+            }
+            csvWriter.append(nthreads);
+            csvWriter.append(",");
+            csvWriter.append(Long.toString(av/n));
+            csvWriter.append(",");
+            csvWriter.append("yes");
+            csvWriter.append("\n");
+        }
+        csvWriter.flush();
+        csvWriter.close();
+    }
+
+    private static void rateInfluenceAverage(int n) throws  IOException, InterruptedException {
+        ReentrantLock avlock = new ReentrantLock();
+        ReentrantLock csvlock = new ReentrantLock();
+
+        // Write the data to a csv file which can be turned into plots by the Python code.
+        FileWriter csvWriter = null;
+        try {
+            csvWriter = new FileWriter("../data/rate_influence_average.csv");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -61,7 +130,7 @@ public class JavaClient {
         double u = rnd.nextDouble();
 
         // For every query type, run the tests a certain number of times.
-        double[] invlambdas = {1.0, 50.0, 100.0, 200.0, 350.0, 500.0, 700.0, 1000.0};
+        double[] invlambdas = {1.0, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 500.0, 750.0, 1000.0, 1500.0};
         for (double invlambda: invlambdas) {
             long av = 0;
             SQLThread[] threads = new SQLThread[n];
@@ -70,6 +139,136 @@ public class JavaClient {
                 int nRows = Math.abs((int) expo(1/1000.0));
                 Thread.sleep((long) expo(1.0/invlambda));
                 threads[i] = new SQLThread("GetAverage", startRow, nRows, -1);
+                threads[i].start();
+            }
+            for (SQLThread th : threads) {
+                th.join();
+                long tl = th.getTime();
+                avlock.lock();
+                try {
+                    av += tl;
+                } finally {
+                    avlock.unlock();
+                }
+                String t = Long.toString(tl);
+                csvlock.lock();
+                try {
+                    csvWriter.append(Double.toString(invlambda));
+                    csvWriter.append(",");
+                    csvWriter.append(t);
+                    csvWriter.append(",");
+                    csvWriter.append("no");
+                    csvWriter.append("\n");
+                } finally {
+                    csvlock.unlock();
+                }
+            }
+            csvWriter.append(Double.toString(invlambda));
+            csvWriter.append(",");
+            csvWriter.append(Long.toString(av/n));
+            csvWriter.append(",");
+            csvWriter.append("yes");
+            csvWriter.append("\n");
+        }
+        csvWriter.flush();
+        csvWriter.close();
+    }
+
+    private static void rateInfluenceSelect(int n) throws  IOException, InterruptedException {
+        ReentrantLock avlock = new ReentrantLock();
+        ReentrantLock csvlock = new ReentrantLock();
+
+        // Write the data to a csv file which can be turned into plots by the Python code.
+        FileWriter csvWriter = null;
+        try {
+            csvWriter = new FileWriter("../data/rate_influence_select.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        assert csvWriter != null;
+        csvWriter.append("mean_time");
+        csvWriter.append(",");
+        csvWriter.append("time");
+        csvWriter.append(",");
+        csvWriter.append("is_average");
+        csvWriter.append("\n");
+
+        double u = rnd.nextDouble();
+
+        // For every query type, run the tests a certain number of times.
+        double[] invlambdas = {1.0, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 500.0, 750.0, 1000.0, 1500.0};
+        for (double invlambda: invlambdas) {
+            long av = 0;
+            SQLThread[] threads = new SQLThread[n];
+            for (int i = 0; i < n; i++) {
+                int startRow = Math.abs(rnd.nextInt() % 2000000);
+                int nRows = Math.abs((int) expo(1/1000.0));
+                Thread.sleep((long) expo(1.0/invlambda));
+                threads[i] = new SQLThread("Select", startRow, -1, nRows);
+                threads[i].start();
+            }
+            for (SQLThread th : threads) {
+                th.join();
+                long tl = th.getTime();
+                avlock.lock();
+                try {
+                    av += tl;
+                } finally {
+                    avlock.unlock();
+                }
+                String t = Long.toString(tl);
+                csvlock.lock();
+                try {
+                    csvWriter.append(Double.toString(invlambda));
+                    csvWriter.append(",");
+                    csvWriter.append(t);
+                    csvWriter.append(",");
+                    csvWriter.append("no");
+                    csvWriter.append("\n");
+                } finally {
+                    csvlock.unlock();
+                }
+            }
+            csvWriter.append(Double.toString(invlambda));
+            csvWriter.append(",");
+            csvWriter.append(Long.toString(av/n));
+            csvWriter.append(",");
+            csvWriter.append("yes");
+            csvWriter.append("\n");
+        }
+        csvWriter.flush();
+        csvWriter.close();
+    }
+
+    private static void rateInfluenceWrite(int n) throws  IOException, InterruptedException {
+        ReentrantLock avlock = new ReentrantLock();
+        ReentrantLock csvlock = new ReentrantLock();
+
+        // Write the data to a csv file which can be turned into plots by the Python code.
+        FileWriter csvWriter = null;
+        try {
+            csvWriter = new FileWriter("../data/rate_influence_write.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        assert csvWriter != null;
+        csvWriter.append("mean_time");
+        csvWriter.append(",");
+        csvWriter.append("time");
+        csvWriter.append(",");
+        csvWriter.append("is_average");
+        csvWriter.append("\n");
+
+        double u = rnd.nextDouble();
+
+        // For every query type, run the tests a certain number of times.
+        double[] invlambdas = {1.0, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 500.0, 750.0, 1000.0, 1500.0};
+        for (double invlambda: invlambdas) {
+            long av = 0;
+            SQLThread[] threads = new SQLThread[n];
+            for (int i = 0; i < n; i++) {
+                Thread.sleep((long) expo(1.0/invlambda));
+                threads[i] = new SQLThread("Write", -1, -1, -1);
                 threads[i].start();
             }
             for (SQLThread th : threads) {
@@ -136,7 +335,7 @@ public class JavaClient {
                     for (int i = 0; i < n; i++) {
                         int startRow = Math.abs(rnd.nextInt() % 2000000);
                         int nRows = Math.abs((int) expo(1/1000.0));
-                        Thread.sleep((long) expo(1/180.0));
+                        Thread.sleep((long) expo(1/1000.0));
                         threads[i] = new SQLThread(queryType, startRow, nRows, -1);
                         threads[i].start();
                     }
@@ -167,7 +366,7 @@ public class JavaClient {
                     for (int i = 0; i < n; i++) {
                         int startRow = Math.abs(rnd.nextInt() % 2000000);
                         int nRows = Math.abs((int) expo(1/10000.0));
-                        Thread.sleep((long) expo(1/620.0));
+                        Thread.sleep((long) expo(1/3000.0));
                         threads[i] = new SQLThread(queryType, startRow, -1, nRows);
                         threads[i].start();
                     }
@@ -196,7 +395,7 @@ public class JavaClient {
                     break;
                 case "Write":
                     for (int i = 0; i < n; i++) {
-                        Thread.sleep((long) expo(1/25.0));
+                        Thread.sleep((long) expo(1/1000.0));
                         threads[i] = new SQLThread(queryType, -1, -1, -1);
                         threads[i].start();
                     }
@@ -354,7 +553,7 @@ class SQLThread extends Thread {
             System.out.println(e);
         }
     }
-    
+
     long getTime() {
         return this.time;
     }
